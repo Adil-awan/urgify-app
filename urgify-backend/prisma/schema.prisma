@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  WORKER
+  ADMIN
+}
+
+enum JobStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id              String         @id @default(uuid())
+  email           String         @unique
+  password        String?
+  name            String
+  phone           String?
+  photoUrl        String?
+  role            Role           @default(CUSTOMER)
+  fcmToken        String?
+  lastLat         Float?
+  lastLng         Float?
+  isBlocked       Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  workerProfile   WorkerProfile?
+  postedJobs      Job[]          @relation("CustomerJobs")
+  bids            Bid[]          @relation("WorkerBids")
+  reviewsGiven    Review[]       @relation("ReviewsGiven")
+  reviewsReceived Review[]       @relation("ReviewsReceived")
+  messagesSent    Message[]      @relation("SentMessages")
+  addresses       Address[]
+
+  @@index([role, updatedAt])
+  @@index([role, lastLat, lastLng])
+}
+
+model WorkerProfile {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills         String[] // Array of categories
+  hourlyRate     Float?
+  serviceRadius  Float?   // in km or miles
+  isVerified     Boolean  @default(false)
+  commissionOwed Float    @default(0)
+  certificates   String[]
+  cnicFrontUrl   String?
+  cnicBackUrl    String?
+  averageRating  Float    @default(0)
+  totalReviews   Int      @default(0)
+  isOnline       Boolean  @default(true)
+  isPremium      Boolean  @default(false)
+  accountExpiry  DateTime?
+  portfolio      PortfolioItem[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Job {
+  id             String    @id @default(uuid())
+  customerId     String
+  customer       User      @relation("CustomerJobs", fields: [customerId], references: [id])
+  category       String
+  description    String
+  photoUrl       String?
+  locationLat    Float?
+  locationLng    Float?
+  status         JobStatus @default(OPEN)
+  scheduledFor   DateTime? // Optional: For future bookings
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  bids           Bid[]
+  transaction    Transaction?
+  review         Review?
+  messages       Message[]
+  dispute        Dispute?
+  portfolioItems PortfolioItem[]
+
+  @@index([status, category])
+  @@index([customerId])
+}
+
+model Bid {
+  id             String    @id @default(uuid())
+  jobId          String
+  job            Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  workerId       String
+  worker         User      @relation("WorkerBids", fields: [workerId], references: [id], onDelete: Cascade)
+  price          Float
+  message        String?
+  status         BidStatus @default(PENDING)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([jobId])
+  @@index([workerId])
+  @@index([jobId, workerId])
+}
+
+model Transaction {
+  id                   String        @id @default(uuid())
+  jobId                String        @unique
+  job                  Job           @relation(fields: [jobId], references: [id])
+  amount               Float
+  commission           Float
+  status               PaymentStatus @default(PENDING)
+  stripePaymentIntent  String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+}
+
+model Review {
+  id             String   @id @default(uuid())
+  jobId          String   @unique
+  job            Job      @relation(fields: [jobId], references: [id])
+  reviewerId     String
+  reviewer       User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  revieweeId     String
+  reviewee       User     @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  rating         Int
+  comment        String?
+  createdAt      DateTime @default(now())
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  text      String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+
+  @@index([jobId])
+  @@index([senderId])
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String   // e.g. "Home", "Office"
+  street    String
+  city      String
+  lat       Float
+  lng       Float
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Dispute {
+  id          String   @id @default(uuid())
+  jobId       String   @unique
+  job         Job      @relation(fields: [jobId], references: [id])
+  reporterId  String
+  reason      String
+  status      String   @default("OPEN") // OPEN, RESOLVED, CLOSED
+  createdAt   DateTime @default(now())
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  icon      String   // Emoji or Icon name
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model PortfolioItem {
+  id              String   @id @default(uuid())
+  workerProfileId String
+  workerProfile   WorkerProfile @relation(fields: [workerProfileId], references: [id], onDelete: Cascade)
+  jobId           String?
+  job             Job?     @relation(fields: [jobId], references: [id])
+  imageUrl        String
+  description     String?
+  isApproved      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([workerProfileId])
+  @@index([jobId])
+}
+

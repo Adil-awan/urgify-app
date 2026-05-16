@@ -1,0 +1,7 @@
+{
+  "name": "urgify-root",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "cd urgify-backend && npm install && npm run build && npm start"
+  }
+}

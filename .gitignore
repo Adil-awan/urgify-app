@@ -1,0 +1,14 @@
+node_modules/
+.expo/
+dist/
+build/
+android/
+ios/
+*.png
+*.jpg
+*.jpeg
+*.zip
+.env
+urgify-app/
+urgify-admin/
+urgify-landing/
