@@ -41,9 +41,14 @@ const shouldUseRelaxedSsl =
 if (databaseUrl) {
   try {
     const parsed = new URL(databaseUrl);
-    // `sslmode=require` can force strict verification with current pg parser behavior.
-    // We provide explicit SSL options below, so strip this query param to avoid conflicts.
-    parsed.searchParams.delete('sslmode');
+    // If using Supabase Pooler (port 6543), we MUST use pgbouncer=true
+    if (parsed.port === '6543' && !parsed.searchParams.has('pgbouncer')) {
+      parsed.searchParams.set('pgbouncer', 'true');
+    }
+    // Ensure sslmode is set to require for Supabase
+    if (!parsed.searchParams.has('sslmode')) {
+      parsed.searchParams.set('sslmode', 'require');
+    }
     normalizedDatabaseUrl = parsed.toString();
   } catch {
     normalizedDatabaseUrl = databaseUrl;
