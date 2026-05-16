@@ -96,6 +96,10 @@ const warnIfIpv6OnlyDatabaseHost = async () => {
 };
 
 app.use(cors());
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
 // Stripe webhook needs raw body — mount BEFORE express.json()
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
@@ -116,8 +120,14 @@ app.use('/api/categories', categoryRoutes);
 // Static files for uploaded images
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Urgify Backend is running!' });
+app.get('/api/health', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'OK', message: 'Urgify Backend & Database are running!' });
+  } catch (error) {
+    console.error('Health check DB error:', error);
+    res.status(500).json({ status: 'ERROR', message: 'Backend running, but Database is unreachable' });
+  }
 });
 
 // ---------- Socket.io Real-time Events ----------
