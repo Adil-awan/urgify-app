@@ -1,3 +1,12 @@
+---
+title: Urgify Backend
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+---
+
 # Urgify | On-Demand Service Marketplace Startup
 
 Urgify is a premium, full-stack on-demand service marketplace designed to connect customers with skilled workers (electricians, plumbers, mechanics, etc.) in real-time. Built with scalability and user experience in mind, it features Uber-style live tracking, internet-based voice calling, and secure payments.
