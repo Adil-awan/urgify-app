@@ -10,6 +10,7 @@ WORKDIR /app/urgify-backend
 RUN npm install
 
 # Build the TypeScript code
+RUN npx prisma generate
 RUN npm run build
 
 # Hugging Face Spaces require the server to run on port 7860
