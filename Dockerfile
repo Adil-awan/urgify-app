@@ -7,18 +7,23 @@ COPY urgify-backend ./urgify-backend
 
 # Go into backend directory and install dependencies
 WORKDIR /app/urgify-backend
+
+# Install dependencies (including devDependencies needed for build)
 RUN npm install
 
-# Build the TypeScript code
-RUN DATABASE_URL="postgresql://dummy" npx prisma generate
+# Generate Prisma client with a dummy DB URL to satisfy prisma.config.ts
+# The real DATABASE_URL is injected at runtime via Hugging Face Secrets
+RUN DATABASE_URL="postgresql://user:pass@localhost:5432/dummy" npx prisma generate
+
+# Compile TypeScript to JavaScript
 RUN npm run build
 
-# Hugging Face runs containers as user 1000. We must grant permissions so fs.mkdirSync doesn't crash
+# Grant write permissions for Hugging Face restricted user (uid 1000)
 RUN chmod -R 777 /app
 
 # Hugging Face Spaces require the server to run on port 7860
 ENV PORT=7860
 EXPOSE 7860
 
-# Start the server
-CMD ["npm", "start"]
+# Start the compiled server
+CMD ["node", "dist/index.js"]
