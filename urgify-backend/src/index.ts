@@ -317,8 +317,8 @@ setInterval(async () => {
   }
 }, 30000); // Run every 30 seconds
 
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Urgify server running on http://localhost:${PORT}`);
+httpServer.listen(PORT as number, '0.0.0.0', () => {
+  console.log(`🚀 Urgify server running on http://0.0.0.0:${PORT}`);
   console.log(`🔌 Socket.io ready for real-time connections`);
   warnIfIpv6OnlyDatabaseHost();
 });
