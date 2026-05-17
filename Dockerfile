@@ -13,6 +13,9 @@ RUN npm install
 RUN DATABASE_URL="postgresql://dummy" npx prisma generate
 RUN npm run build
 
+# Hugging Face runs containers as user 1000. We must grant permissions so fs.mkdirSync doesn't crash
+RUN chmod -R 777 /app
+
 # Hugging Face Spaces require the server to run on port 7860
 ENV PORT=7860
 EXPOSE 7860
