@@ -32,32 +32,32 @@ export const io = new Server(httpServer, {
   cors: { origin: '*', methods: ['GET', 'POST'] }
 });
 
-const databaseUrl = process.env.DATABASE_URL_IPV4 || process.env.DATABASE_URL;
-let normalizedDatabaseUrl = databaseUrl;
-const shouldUseRelaxedSsl =
-  !!databaseUrl &&
-  (databaseUrl.includes('supabase.com') || databaseUrl.includes('sslmode=require'));
+const rawDatabaseUrl = process.env.DATABASE_URL_IPV4 || process.env.DATABASE_URL || '';
 
-if (databaseUrl) {
+// When using pg.Pool directly (via @prisma/adapter-pg), we must:
+// 1. Strip Prisma-only query params like pgbouncer=true (pg doesn't understand them)
+// 2. Strip sslmode from the URL (we pass ssl as a Pool option instead)
+// 3. Pass ssl: { rejectUnauthorized: false } directly to the Pool for Supabase
+let cleanDatabaseUrl = rawDatabaseUrl;
+const isSupabase = rawDatabaseUrl.includes('supabase.com');
+
+if (rawDatabaseUrl) {
   try {
-    const parsed = new URL(databaseUrl);
-    // If using Supabase Pooler (port 6543), we MUST use pgbouncer=true
-    if (parsed.port === '6543' && !parsed.searchParams.has('pgbouncer')) {
-      parsed.searchParams.set('pgbouncer', 'true');
-    }
-    // Ensure sslmode is set to require for Supabase
-    if (!parsed.searchParams.has('sslmode')) {
-      parsed.searchParams.set('sslmode', 'require');
-    }
-    normalizedDatabaseUrl = parsed.toString();
+    const parsed = new URL(rawDatabaseUrl);
+    // Remove Prisma-specific params that break pg.Pool
+    parsed.searchParams.delete('pgbouncer');
+    parsed.searchParams.delete('sslmode');
+    cleanDatabaseUrl = parsed.toString();
   } catch {
-    normalizedDatabaseUrl = databaseUrl;
+    cleanDatabaseUrl = rawDatabaseUrl;
   }
 }
 
+console.log(`[DB] Connecting to Supabase: ${isSupabase}, URL host: ${rawDatabaseUrl ? new URL(rawDatabaseUrl).hostname : 'NOT SET'}`);
+
 const pool = new Pool({
-  connectionString: normalizedDatabaseUrl,
-  ssl: shouldUseRelaxedSsl ? { rejectUnauthorized: false } : undefined,
+  connectionString: cleanDatabaseUrl,
+  ssl: isSupabase ? { rejectUnauthorized: false } : undefined,
 });
 const adapter = new PrismaPg(pool);
 export const prisma = new PrismaClient({ adapter });
