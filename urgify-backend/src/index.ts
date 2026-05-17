@@ -86,8 +86,8 @@ const PORT = process.env.PORT || 5000;
 
 const warnIfIpv6OnlyDatabaseHost = async () => {
   try {
-    if (!databaseUrl) return;
-    const hostname = new URL(databaseUrl).hostname;
+    if (!rawDatabaseUrl) return;
+    const hostname = new URL(rawDatabaseUrl).hostname;
     const ipv4Records = await dns.promises.resolve4(hostname).catch(() => []);
     const ipv6Records = await dns.promises.resolve6(hostname).catch(() => []);
     if (ipv4Records.length === 0 && ipv6Records.length > 0) {
